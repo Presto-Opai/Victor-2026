@@ -211,7 +211,18 @@
     { sym:'×', name:'Multiplication' },
     { sym:'÷', name:'Division' },
   ];
-  const OPS_PER_LEVEL = 5;     // nombre de bonnes réponses avant le dragon ennemi
+  // nombre de bonnes réponses avant le dragon ennemi : 3 pour les 2 premiers niveaux, puis 5
+  function opsNeeded(){ return level < 2 ? 3 : 5; }
+
+  // palettes des dragons ennemis (du plus sombre au plus clair), changées à chaque niveau
+  const BOSS_PALETTES = [
+    ['#3a1860','#46205e','#5a2580','#6a3093','#7a3aa5','#9b5de5','#b07ddb'], // violet
+    ['#0b3a2e','#125c43','#1f7a52','#2a9d6f','#3cc78c','#6ee7b0','#a7f3cf'], // émeraude
+    ['#4a0d1a','#6b1322','#8c1a2e','#b3122a','#d62246','#ff5a5f','#ff9aa2'], // cramoisi
+    ['#0d2a4a','#14416b','#1f5e91','#2a7fbf','#3ca3e0','#6ec7ef','#a7e0fb'], // azur
+    ['#4a2a06','#6b3d0b','#8c5410','#b37016','#d6912a','#ffb703','#ffd166'], // ambre
+    ['#3a0b2e','#5c1247','#7a1f6a','#9d2a8f','#c73cc7','#e76ee7','#f3a7f3'], // magenta
+  ];
 
   // ---------- Game state ----------
   let state = 'menu';           // menu | play | over
@@ -264,7 +275,7 @@
     problem = { a, b, op, ans, digits, text:`${a} ${op.sym} ${b}` };
     buildDistractors();
     bubbles.length = 0;            // on repart sur une opération propre
-    sinceCorrect = 2;              // la prochaine bulle peut être la bonne
+    sinceCorrect = 0;              // 1re bulle non prévisible (plus forcément la bonne réponse)
     bubbleT = 0.5;
   }
 
@@ -298,9 +309,10 @@
   }
 
   function spawnBoss(){
-    // Dragon ennemi : caractéristiques CONSTANTES (pas d'accélération d'un dragon à l'autre)
-    const hp = 4;
-    boss = { x:VW+50, y:VH/2, state:'enter', hp, maxhp:hp, flap:0, hitFlash:0, shootT:1.6, vy:0, dieT:0 };
+    // Dragon ennemi : 1 PV au 1er, 2 au 2e, puis 4 ensuite ; couleur qui change à chaque niveau
+    const hp = level===0 ? 1 : level===1 ? 2 : 4;
+    const pal = BOSS_PALETTES[level % BOSS_PALETTES.length];
+    boss = { x:VW+50, y:VH/2, state:'enter', hp, maxhp:hp, flap:0, hitFlash:0, shootT:1.6, vy:0, dieT:0, pal };
     sfxBossAppear();
     spawnFloatText(VW/2, 60, 'DRAGON ENNEMI !');
     shake = Math.max(shake, 4);
@@ -363,7 +375,7 @@
     spawnFloatText(bu.x, bu.y-12, 'BRAVO ! +10');
     sfxCatch();
     opsCorrect++;
-    if(opsCorrect >= OPS_PER_LEVEL){
+    if(opsCorrect >= opsNeeded()){
       // fin du niveau → dragon ennemi entre les changements
       opsCorrect = 0;
       bubbles = bubbles.filter(b=>b.popped);   // on dégage les bulles restantes
@@ -385,7 +397,7 @@
   // ---------- Update ----------
   function update(dt){
     t += dt;
-    if(fireCharge < FIRE_FULL) fireCharge = Math.min(FIRE_FULL, fireCharge + dt*(boss?0.135:0.085));
+    if(fireCharge < FIRE_FULL) fireCharge = Math.min(FIRE_FULL, fireCharge + dt*(boss?0.17:0.085));
     if(fireFlash>0) fireFlash -= dt;
     if(shake>0) shake = Math.max(0, shake - dt*12);
     if(invuln>0) invuln -= dt;
@@ -596,30 +608,31 @@
     const x=b.x|0, y=b.y|0;
     const flapUp = Math.sin(b.flap)>0;
     const flash = b.hitFlash>0 && Math.floor(t*30)%2===0;
-    const C = c => flash ? '#ffffff' : c;     // clignote blanc quand touché
+    const p = b.pal || BOSS_PALETTES[0];      // palette du dragon (change à chaque niveau)
+    const C = i => flash ? '#ffffff' : p[i];  // clignote blanc quand touché
     ctx.save();
     if(b.state==='dying'){ ctx.globalAlpha=Math.max(0,1-b.dieT); }
     // tail (côté droit)
-    px(x+18,y+1,11,6,C('#5a2580')); px(x+27,y-1,6,4,C('#6a3093')); px(x+31,y-4,4,7,C('#9b5de5'));
+    px(x+18,y+1,11,6,C(2)); px(x+27,y-1,6,4,C(3)); px(x+31,y-4,4,7,C(5));
     // back spikes
-    for(let i=-2;i<=2;i++) px(x+i*6, y-13, 4,5, C('#3a1860'));
+    for(let i=-2;i<=2;i++) px(x+i*6, y-13, 4,5, C(0));
     // body
-    px(x-16,y-8,32,17,C('#6a3093')); px(x-16,y+6,30,5,C('#46205e')); px(x-14,y-7,28,3,C('#9b5de5'));
+    px(x-16,y-8,32,17,C(3)); px(x-16,y+6,30,5,C(1)); px(x-14,y-7,28,3,C(5));
     // belly ridges
-    px(x-12,y+5,24,3,C('#7a3aa5'));
+    px(x-12,y+5,24,3,C(4));
     // wing (animé)
-    if(flapUp){ px(x-6,y-24,20,17,C('#5a2580')); px(x-4,y-22,16,12,C('#7a3aa5')); px(x-6,y-24,20,3,C('#b07ddb')); }
-    else { px(x-6,y+5,20,13,C('#46205e')); px(x-4,y+7,16,9,C('#5a2580')); }
+    if(flapUp){ px(x-6,y-24,20,17,C(2)); px(x-4,y-22,16,12,C(4)); px(x-6,y-24,20,3,C(6)); }
+    else { px(x-6,y+5,20,13,C(1)); px(x-4,y+7,16,9,C(2)); }
     // neck + head (face à gauche, vers le joueur)
-    px(x-20,y-10,9,12,C('#6a3093'));
-    px(x-33,y-14,15,14,C('#7a3aa5'));        // tête
-    px(x-32,y-13,13,3,C('#9b5de5'));
+    px(x-20,y-10,9,12,C(3));
+    px(x-33,y-14,15,14,C(4));        // tête
+    px(x-32,y-13,13,3,C(5));
     // cornes
     px(x-29,y-19,3,6,'#2d3436'); px(x-22,y-19,3,6,'#2d3436');
     // œil rougeoyant
     px(x-29,y-9,4,3,'#ff2a2a'); px(x-28,y-9,1,1,'#fff');
     // museau + narine + dents
-    px(x-37,y-7,5,6,C('#7a3aa5')); px(x-36,y-5,1,1,'#180826');
+    px(x-37,y-7,5,6,C(4)); px(x-36,y-5,1,1,'#180826');
     px(x-33,y-2,2,2,'#fff'); px(x-29,y-2,2,2,'#fff');
     // lueur de feu dans la gueule
     if(b.state==='fight' && Math.floor(t*5)%2===0) px(x-36,y-3,3,2,'#ff7b1a');
@@ -719,7 +732,7 @@
 
     // progression du niveau (petits points sous les cœurs)
     if(!boss){
-      for(let i=0;i<OPS_PER_LEVEL;i++){
+      for(let i=0;i<opsNeeded();i++){
         const dx=7+i*6, dy=15;
         px(dx,dy,3,3, i<opsCorrect ? '#ffd166' : 'rgba(20,12,40,0.45)');
       }
