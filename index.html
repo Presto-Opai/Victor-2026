@@ -330,38 +330,30 @@
   function tryFire(){
     if(fireCharge < FIRE_FULL) return;
 
-    // On décide d'abord ce qu'on toucherait, AVANT de dépenser la charge.
     const bossHittable = boss && boss.state==='fight';
-    let target=null;
-    if(!bossHittable){
-      // la fausse réponse la plus proche devant le dragon
-      let bd=1e9;
-      for(const bu of bubbles){
-        if(!bu.popped && !bu.correct && bu.x > player.x){
-          const d = bu.x - player.x;
-          if(d < bd){ bd=d; target=bu; }
-        }
-      }
-    }
-    // Un boss est là mais pas encore en position (il entre / il meurt) → on GARDE la charge.
+    // Un boss est là mais pas encore en position (il entre / il meurt) → on GARDE la charge,
+    // pour qu'une jauge déjà pleine touche bien le boss dès qu'il est à portée.
     if(boss && !bossHittable) return;
-    // Rien à brûler du tout → on garde la charge aussi (pas de tir gaspillé).
-    if(!bossHittable && !target) return;
 
-    // Là on tire pour de vrai : on dépense la charge et on crache le feu.
+    // On dépense la charge et on crache le feu.
     fireCharge = 0; fireFlash = 0.35; shake = Math.max(shake, 3);
     sfxFire();
-    // fire particles from dragon mouth
-    for(let i=0;i<22;i++){
-      particles.push({
-        x:player.x+22, y:player.y-2,
-        vx:60+Math.random()*120, vy:(Math.random()-0.5)*40,
-        life:0.5+Math.random()*0.4, max:0.9, kind:'fire',
-        sz:2+Math.random()*3
-      });
-    }
-    // priorité au boss s'il est là
+    const mx = player.x+22, my = player.y-2;
+
     if(bossHittable){
+      // jet de feu DIRIGÉ vers le boss : il file jusqu'à lui et l'embrase.
+      const dx = boss.x - mx, dy = boss.y - my, dd = Math.hypot(dx,dy)||1;
+      const ux = dx/dd, uy = dy/dd;
+      for(let i=0;i<28;i++){
+        const sp = 320 + Math.random()*200;
+        const ang = (Math.random()-0.5)*0.4, ca=Math.cos(ang), sa=Math.sin(ang);
+        particles.push({
+          x:mx, y:my, vx:(ux*ca-uy*sa)*sp, vy:(ux*sa+uy*ca)*sp,
+          life:0.5+Math.random()*0.45, max:0.95, kind:'fire',
+          sz:2+Math.random()*3, drag:0.99, buoy:0
+        });
+      }
+      burst(boss.x-18, boss.y, '#ff9f1a', 12);   // impact sur l'ennemi
       boss.hp--; boss.hitFlash=0.28; shake=6;
       sfxBossHit();
       if(boss.hp<=0){
@@ -375,8 +367,26 @@
       }
       return;
     }
-    // sinon : brûle la fausse réponse la plus proche devant le dragon
-    popBubble(target, false); sfxFlee(); spawnFloatText(target.x, target.y-12, 'FAUX !');
+
+    // Hors combat : petite gerbe de feu devant le dragon.
+    for(let i=0;i<22;i++){
+      particles.push({
+        x:mx, y:my,
+        vx:60+Math.random()*120, vy:(Math.random()-0.5)*40,
+        life:0.5+Math.random()*0.4, max:0.9, kind:'fire',
+        sz:2+Math.random()*3
+      });
+    }
+    // brûle la fausse réponse la plus proche devant le dragon (s'il y en a une).
+    let target=null, bd=1e9;
+    for(const bu of bubbles){
+      if(!bu.popped && !bu.correct && bu.x > player.x){
+        const d = bu.x - player.x;
+        if(d < bd){ bd=d; target=bu; }
+      }
+    }
+    if(target){ popBubble(target, false); sfxFlee(); spawnFloatText(target.x, target.y-12, 'FAUX !'); }
+    // sinon : tir gaspillé dans le vide, c'est OK.
   }
 
   function popBubble(bu, caughtByPlayer){
@@ -504,7 +514,7 @@
     for(const p of particles){
       p.life -= dt;
       p.x += (p.vx||0)*dt; p.y += (p.vy||0)*dt;
-      if(p.kind==='fire'){ p.vx*=0.94; p.vy+= -20*dt; }
+      if(p.kind==='fire'){ p.vx*=(p.drag!=null?p.drag:0.94); p.vy+= (p.buoy!=null?p.buoy:-20)*dt; }
       if(p.kind==='text'){ p.y -= 22*dt; }
     }
     particles = particles.filter(p => p.life>0);
