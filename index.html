@@ -329,6 +329,26 @@
 
   function tryFire(){
     if(fireCharge < FIRE_FULL) return;
+
+    // On décide d'abord ce qu'on toucherait, AVANT de dépenser la charge.
+    const bossHittable = boss && boss.state==='fight';
+    let target=null;
+    if(!bossHittable){
+      // la fausse réponse la plus proche devant le dragon
+      let bd=1e9;
+      for(const bu of bubbles){
+        if(!bu.popped && !bu.correct && bu.x > player.x){
+          const d = bu.x - player.x;
+          if(d < bd){ bd=d; target=bu; }
+        }
+      }
+    }
+    // Un boss est là mais pas encore en position (il entre / il meurt) → on GARDE la charge.
+    if(boss && !bossHittable) return;
+    // Rien à brûler du tout → on garde la charge aussi (pas de tir gaspillé).
+    if(!bossHittable && !target) return;
+
+    // Là on tire pour de vrai : on dépense la charge et on crache le feu.
     fireCharge = 0; fireFlash = 0.35; shake = Math.max(shake, 3);
     sfxFire();
     // fire particles from dragon mouth
@@ -341,7 +361,7 @@
       });
     }
     // priorité au boss s'il est là
-    if(boss && boss.state==='fight'){
+    if(bossHittable){
       boss.hp--; boss.hitFlash=0.28; shake=6;
       sfxBossHit();
       if(boss.hp<=0){
@@ -356,14 +376,7 @@
       return;
     }
     // sinon : brûle la fausse réponse la plus proche devant le dragon
-    let target=null, bd=1e9;
-    for(const bu of bubbles){
-      if(!bu.popped && !bu.correct && bu.x > player.x){
-        const d = bu.x - player.x;
-        if(d < bd){ bd=d; target=bu; }
-      }
-    }
-    if(target){ popBubble(target, false); sfxFlee(); spawnFloatText(target.x, target.y-12, 'FAUX !'); }
+    popBubble(target, false); sfxFlee(); spawnFloatText(target.x, target.y-12, 'FAUX !');
   }
 
   function popBubble(bu, caughtByPlayer){
