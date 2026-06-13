@@ -663,14 +663,14 @@
     function drawDragonTrigger(x,y){ x|=0;y|=0;
       // dragon endormi, en boule, qui ronfle
       px(x-22,y-2,44,3,'rgba(0,0,0,.18)');
-      ctx.fillStyle='#2a9d6f'; circleFill(x,y-8,15);
-      ctx.fillStyle='#3cc78c'; circleFill(x-2,y-10,11);
-      px(x-20,y-6,10,6,'#2a9d6f');                                   // queue repliée
-      px(x+8,y-12,12,9,'#2a9d6f');                                   // tête posée
-      px(x+9,y-11,10,3,'#46d99c');
-      px(x+11,y-9,3,1,'#1a5a3a'); px(x+16,y-9,3,1,'#1a5a3a');        // yeux fermés
+      ctx.fillStyle='#d62246'; circleFill(x,y-8,15);
+      ctx.fillStyle='#e63946'; circleFill(x-2,y-10,11);
+      px(x-20,y-6,10,6,'#d62246');                                   // queue repliée
+      px(x+8,y-12,12,9,'#d62246');                                   // tête posée
+      px(x+9,y-11,10,3,'#ff6b74');
+      px(x+11,y-9,3,1,'#7a0c19'); px(x+16,y-9,3,1,'#7a0c19');        // yeux fermés
       // ailes repliées
-      px(x-6,y-18,12,8,'#249065'); px(x-4,y-16,8,5,'#34b07e');
+      px(x-6,y-18,12,8,'#b3122a'); px(x-4,y-16,8,5,'#e63946');
       // Zzz
       const zf=Math.floor(tEnv*2)%3;
       ctx.font='6px "Press Start 2P", monospace'; ctx.textAlign='left'; ctx.fillStyle='#fff';
@@ -696,7 +696,7 @@
         // étiquette du défi
         bubbleText(sx(near.wx), sy(near.wx)-44, near.label, 'rgba(36,23,52,.9)', '#ffd166');
       }
-      const loc = victor.wx<TOWN_END ? 'LA VILLE' : victor.wx<SUMMIT_X ? 'LA MONTÉE' : 'LE SOMMET';
+      const loc = victor.wx<TOWN_END ? 'LA VILLE' : victor.wx<SUMMIT_X ? "L'ASCENSION" : 'LE SOMMET';
       ctx.font='6px "Press Start 2P", monospace'; ctx.textAlign='center';
       px(VW/2-44, 4, 88, 11, 'rgba(36,23,52,.55)');
       ctx.fillStyle='#fff'; ctx.fillText(loc, VW/2, 12);
