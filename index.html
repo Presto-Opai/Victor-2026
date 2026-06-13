@@ -975,9 +975,9 @@
      JEU 2 — LA DESCENTE FOLLE (roller, vue de dos, été, on DESCEND)
      ====================================================================== */
   const roller = (() => {
-    // SLALOM VU DE DESSUS : la piste défile vers le BAS = on descend.
+    // SLALOM VU DE DESSUS : Victor file vers le BAS, le décor remonte l'écran.
     const MARG=12;                 // bandes de forêt sur les côtés
-    const PY=VH-26;                // y de Victor (en bas)
+    const PY=40;                   // y de Victor (près du haut)
     let speed, dist, hearts, invuln, shake, t, score, gates, scrollY;
     let playerX, targetX, lean;
     let items, sides, tufts, streaks;
@@ -1012,18 +1012,18 @@
       playerX=clamp(playerX, MARG+8, VW-MARG-8);
       lean+=(clamp((targetX-playerX)*0.12,-1,1)-lean)*Math.min(1,dt*8);
 
-      const dy=speed*dt;
-      for(const it of items) it.y+=dy;
-      for(const s of sides){ s.y+=dy; if(s.y>VH+8){ s.y-=VH+16; s.x=(Math.random()<0.5? rnd(1,MARG-2): VW-rnd(1,MARG-2)); s.kind=Math.random()<0.5?'fir':'rock'; } }
-      for(const tu of tufts){ tu.y+=dy; if(tu.y>VH){ tu.y-=VH; tu.x=Math.random()*VW; } }
-      for(const st of streaks){ st.y+=dy*1.4; if(st.y>VH){ st.y-=VH; st.x=Math.random()<0.5? rnd(1,MARG): VW-rnd(1,MARG); } }
+      const dy=speed*dt;                              // le décor remonte (on va vers le bas)
+      for(const it of items) it.y-=dy;
+      for(const s of sides){ s.y-=dy; if(s.y<-8){ s.y+=VH+16; s.x=(Math.random()<0.5? rnd(1,MARG-2): VW-rnd(1,MARG-2)); s.kind=Math.random()<0.5?'fir':'rock'; } }
+      for(const tu of tufts){ tu.y-=dy; if(tu.y<0){ tu.y+=VH; tu.x=Math.random()*VW; } }
+      for(const st of streaks){ st.y-=dy*1.4; if(st.y<0){ st.y+=VH; st.x=Math.random()<0.5? rnd(1,MARG): VW-rnd(1,MARG); } }
 
       spawnT-=dt;
       if(spawnT<=0){ spawnT=Math.max(0.3, 0.85 - dist*0.0016) + Math.random()*0.3; const pool=obPool();
-        items.push({kind:pool[rnd(0,pool.length-1)], x:MARG+12+Math.random()*(VW-2*MARG-24), y:-14, hit:false, ph:Math.random()*6.28}); }
+        items.push({kind:pool[rnd(0,pool.length-1)], x:MARG+12+Math.random()*(VW-2*MARG-24), y:VH+14, hit:false, ph:Math.random()*6.28}); }
       gateT-=dt;
       if(gateT<=0){ gateT=1.1+Math.random()*0.7; const gx=MARG+30+Math.random()*(VW-2*MARG-60);
-        items.push({kind:'gate', x:gx, half:16+Math.random()*8, y:-14, scored:false, ok:false, col:gates%2?'#3aa0ff':'#ff5a5f'}); }
+        items.push({kind:'gate', x:gx, half:16+Math.random()*8, y:VH+14, scored:false, ok:false, col:gates%2?'#3aa0ff':'#ff5a5f'}); }
 
       for(const it of items){
         if(it.kind==='gate'){
@@ -1036,7 +1036,7 @@
           else crash();
         }
       }
-      items=items.filter(it=> it.y < VH+18);
+      items=items.filter(it=> it.y > -18);
     }
     function crash(){ if(invuln>0) return; hearts--; invuln=1.2; shake=10; speed=Math.max(70,speed*0.5); sfxCrash(); if(hearts<=0) gameOver('roller',score); }
 
@@ -1055,8 +1055,8 @@
       ctx.restore(); drawHUD();
     }
     function drawTexture(){
-      const ph=scrollY%26;
-      for(let y=-26+ph; y<VH+10; y+=26){
+      const ph=scrollY%26;                            // chevrons pointés vers le bas qui remontent
+      for(let y=VH+13-ph; y>-26; y-=26){
         ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.lineWidth=2;
         ctx.beginPath(); ctx.moveTo(VW/2-34,y); ctx.lineTo(VW/2,y+9); ctx.lineTo(VW/2+34,y); ctx.stroke();
         px(0,(y+13)|0,VW,1,'rgba(70,150,60,.18)');
@@ -1091,8 +1091,8 @@
     }
     function drawRider(x,y,lean){
       x|=0;y|=0; const lx=Math.round(clamp(lean,-1,1)*3); const blink=invuln>0&&Math.floor(t*16)%2===0;
-      // poussière derrière (vers le haut = on file vers le bas)
-      for(let i=0;i<3;i++) px((x-4+i*3)|0,(y+8+i*2)|0,2,2,'rgba(205,184,154,.5)');
+      // poussière derrière (en amont = vers le haut, car on file vers le bas)
+      for(let i=0;i<3;i++) px((x-4+i*3)|0,(y-9-i*2)|0,2,2,'rgba(205,184,154,.5)');
       ctx.save(); if(blink) ctx.globalAlpha=0.5;
       px(x-7,y+6,14,3,'rgba(0,0,0,.18)');
       // rollers (vers l'avant/bas)
